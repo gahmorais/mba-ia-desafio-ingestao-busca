@@ -16,6 +16,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - pgvector
 
   bootstrap_vector_ext:
     image: pgvector/pgvector:pg17
@@ -28,6 +30,18 @@ services:
       psql "postgresql://postgres@postgres:5432/rag" -v ON_ERROR_STOP=1
       -c "CREATE EXTENSION IF NOT EXISTS vector;"
     restart: "no"
+    networks:
+      - pgvector
+  adminer:
+    container_name: adminer
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - pgvector
 
+networks:
+  pgvector:
 volumes:
   postgres_data:
