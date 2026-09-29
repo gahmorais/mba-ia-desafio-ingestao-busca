@@ -1,5 +1,5 @@
 from langchain_postgres.vectorstores import PGVector
-from botocore import model
+# from botocore import model
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from pathlib import Path
@@ -15,18 +15,29 @@ load_dotenv()
 PDF_PATH = os.getenv("PDF_PATH")
 
 def ingest_pdf():
-
+    #VERIFICA SE AS VARIÁVEIS DE AMBIENTE FORAM CORRETAMENTE CARREGADAS
     for k in ("OPENAI_API_KEY", "PG_VECTOR_COLLECTION_NAME", "DATABASE_URL"):
         if not os.getenv(k):
             raise RuntimeError(f"Environment variable {k} is not set")
     
+    #DIRETORIO DO PROJETO
     current_dir = Path(__file__).parent
+
+    #DIRETÓRIO DO ARQUIVO PDF
     pdf_path = current_dir / PDF_PATH
-    docs = PyPDFLoader(pdf_path)
+    
+    #PARTICIONAMENTO DO ARQUIVO PDF
+    print("Carregando arquivo...")
+    docs = PyPDFLoader(str(pdf_path)).load()
+    
+    print("Particionando arquivo...")
     splits = RecursiveCharacterTextSplitter(
         chunk_size=1000, 
         chunk_overlap=150, 
         add_start_index=False).split_documents(docs)
+
+    print("Validando se os chunks foram criados...")
+    #VERIFICAÇÃO SE O ARQUIVO FOI PARTICIONADO
     if not splits:
         raise SystemExit(0)
     
@@ -47,7 +58,10 @@ def ingest_pdf():
         use_jsonb=True
     )
 
-    store.add_documents(docs=enriched,ids=ids)
+    try:
+        store.add_documents(documents=enriched,ids=ids)
+    except Exception as e:
+        print(f"Ocorreu um erro ao armazenar os dados - {e}")
 
 def _clean_metadata(metadata: dict) -> dict:
     return {k: v for k, v in metadata.items() if v not in ("",None)}
